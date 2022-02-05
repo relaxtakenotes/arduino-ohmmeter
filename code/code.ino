@@ -1,11 +1,9 @@
 float resistors[5] = {98.8-0.3, 1002.0-0.3, 10000.0-0.3, 104700.0-0.3, 1035000.0-0.3}; //R2, R3, R4, R5, R6
-float diodesDrops[5] = {0.01, 0.38, 0.38, 0.38, 0.38};
 float resistance;
 byte resistorUsed;
 uint16_t analogVoltage;
 float resistanceOfUnknown;
 float convertedVoltage;
-float diodeVoltageDrop;
 
 #define R2 2;
 #define R3 3;
@@ -40,11 +38,9 @@ void switchResistor(int num) {
     }
   }
   resistance = resistors[num-R2];
-  diodeVoltageDrop = diodesDrops[num-R2];
 
   Serial.println("Switched to resistor at pin " + String(num) + ".");
   Serial.println("Current known resistance is " + String(resistance) + ".");
-  Serial.println("Diode voltage drop is " + String(diodeVoltageDrop) + ".");
 }
 
 void loop() {
@@ -67,7 +63,7 @@ void loop() {
 
   Serial.println("Current analogRead(A1): " + String(analogVoltage));
   if (analogVoltage < 900) {
-    convertedVoltage = (float)analogVoltage * (5.0 / 1024.0) + (float)diodeVoltageDrop;
+    convertedVoltage = (float)analogVoltage * (5.0 / 1024.0);
     resistanceOfUnknown = (float)(convertedVoltage*resistance)/(float)(5.0-convertedVoltage);
     Serial.println("Voltage: " + String(convertedVoltage));
     Serial.println("Resistance of the unknown resistor: " + String(resistanceOfUnknown));
