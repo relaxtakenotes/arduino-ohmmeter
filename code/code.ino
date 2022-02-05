@@ -1,33 +1,26 @@
-float resistors[5] = {98.8-0.3, 1002.0-0.3, 10000.0-0.3, 104700.0-0.3, 1035000.0-0.3}; //R2, R3, R4, R5, R6
+float resistors[5] = {100.0, 1000.0, 10000.0, 104700.0, 1035000.0}; //R2, R3, R4, R5, R6
 float resistance;
 byte resistorUsed;
 uint16_t analogVoltage;
 float resistanceOfUnknown;
 float convertedVoltage;
 
-#define R2 2
-#define R3 3
-#define R4 4
-#define R5 5
-#define R6 6
-
 void setup() {
-  analogReference(EXTERNAL);
   Serial.println("Ohmmeter, epic!");
   Serial.begin(9600);
 
-  pinMode(R2, OUTPUT);
-  pinMode(R3, OUTPUT);
-  pinMode(R4, OUTPUT);
-  pinMode(R5, OUTPUT);
-  pinMode(R6, OUTPUT);
+  pinMode(2, OUTPUT);
+  pinMode(3, OUTPUT);
+  pinMode(4, OUTPUT);
+  pinMode(5, OUTPUT);
+  pinMode(6, OUTPUT);
 
-  resistorUsed = R6;
+  resistorUsed = 5;
   switchResistor(resistorUsed);
 }
 
 void switchResistor(int num) {
-  for (int i = R2; i < R6+1; ++i) {
+  for (int i = 2; i < 7; ++i) {
     if (num == i) {
       digitalWrite(i, HIGH);
       Serial.println("Resistor at the pin " + String(i) + " is set to high.");
@@ -37,31 +30,46 @@ void switchResistor(int num) {
       Serial.println("Resistor at the pin " + String(i) + " is set to low.");
     }
   }
-  resistance = resistors[num-R2];
+  resistance = resistors[num-2];
 
   Serial.println("Switched to resistor at pin " + String(num) + ".");
   Serial.println("Current known resistance is " + String(resistance) + ".");
 }
 
 void loop() {
-  Serial.println("--------Beginning--------");
+  Serial.println("----------------");
   analogVoltage = analogRead(A1);
-  
-  if(analogVoltage >= 550 && resistorUsed < R6) {
+  analogVoltage = 1023 - analogVoltage;
+  Serial.println("resistorUsed: " + String(resistorUsed));
+  Serial.println("analogVoltage: " + String(analogVoltage));
+  if (analogVoltage > 600 && resistorUsed < 6) {
+    resistorUsed++;
+    switchResistor(resistorUsed);
+    delay(50);
+    return;
+  }
+
+  if (analogVoltage < 100 && resistorUsed > 2) {
+    resistorUsed--;
+    switchResistor(resistorUsed);
+    delay(50);
+    return;
+  }
+  /*
+  if(analogVoltage <= 650 && resistorUsed < 6) {
     resistorUsed++;
     switchResistor(resistorUsed);
     delay(50);
     return;
   }
  
-  if(analogVoltage <= 90 && resistorUsed > R2) {
+  if(analogVoltage >= 100 && resistorUsed > 2) {
     resistorUsed--;
     switchResistor(resistorUsed);
     delay(50);
     return;
   }
-
-  Serial.println("Current analogRead(A1): " + String(analogVoltage));
+*/
   if (analogVoltage < 900) {
     convertedVoltage = (float)analogVoltage * (5.0 / 1024.0);
     resistanceOfUnknown = (float)(convertedVoltage*resistance)/(float)(5.0-convertedVoltage);
