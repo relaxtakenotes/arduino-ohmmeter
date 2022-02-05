@@ -1,82 +1,76 @@
+#include <LiquidCrystal.h>
+
 float resistors[5] = {100.0, 1000.0, 10000.0, 104700.0, 1035000.0}; //R2, R3, R4, R5, R6
-float resistance;
 byte resistorUsed;
 uint16_t analogVoltage;
-float resistanceOfUnknown;
 float convertedVoltage;
 
+// Resistor pins
+#define R2 2
+#define R3 3
+#define R4 4
+#define R5 5
+#define R6 6
+
+// LCD Display pins
+#define RS 7
+#define EN 8
+#define DB4 9
+#define DB5 10
+#define DB6 11
+#define DB7 12
+
+LiquidCrystal lcd(RS, EN, DB4, DB5, DB6, DB7);
+
 void setup() {
-  Serial.println("Ohmmeter, epic!");
   Serial.begin(9600);
 
-  pinMode(2, OUTPUT);
-  pinMode(3, OUTPUT);
-  pinMode(4, OUTPUT);
-  pinMode(5, OUTPUT);
-  pinMode(6, OUTPUT);
+  pinMode(R2, OUTPUT);
+  pinMode(R3, OUTPUT);
+  pinMode(R4, OUTPUT);
+  pinMode(R5, OUTPUT);
+  pinMode(R6, OUTPUT);
 
-  resistorUsed = 5;
+  resistorUsed = R6;
   switchResistor(resistorUsed);
+
+  lcd.begin(16, 2);
+  lcd.setCursor(0, 0);
+  lcd.print("Resistance: ");
+  lcd.setCursor(0, 1);
 }
 
 void switchResistor(int num) {
-  for (int i = 2; i < 7; ++i) {
-    if (num == i) {
+  for (int i = R2; i <= R6; ++i) {
+    if (num == i)
       digitalWrite(i, HIGH);
-      Serial.println("Resistor at the pin " + String(i) + " is set to high.");
-    }
-    else {
+    else
       digitalWrite(i, LOW);
-      Serial.println("Resistor at the pin " + String(i) + " is set to low.");
-    }
   }
-  resistance = resistors[num-2];
-
-  Serial.println("Switched to resistor at pin " + String(num) + ".");
-  Serial.println("Current known resistance is " + String(resistance) + ".");
 }
 
 void loop() {
-  Serial.println("----------------");
-  analogVoltage = analogRead(A1);
-  analogVoltage = 1023 - analogVoltage;
-  Serial.println("resistorUsed: " + String(resistorUsed));
-  Serial.println("analogVoltage: " + String(analogVoltage));
-  if (analogVoltage > 600 && resistorUsed < 6) {
+  analogVoltage = 1023 - analogRead(A1);
+
+  if (analogVoltage > 600 && resistorUsed < R6) {
     resistorUsed++;
     switchResistor(resistorUsed);
     delay(50);
     return;
   }
 
-  if (analogVoltage < 100 && resistorUsed > 2) {
+  if (analogVoltage < 100 && resistorUsed > R2) {
     resistorUsed--;
     switchResistor(resistorUsed);
     delay(50);
     return;
   }
-  /*
-  if(analogVoltage <= 650 && resistorUsed < 6) {
-    resistorUsed++;
-    switchResistor(resistorUsed);
-    delay(50);
-    return;
-  }
- 
-  if(analogVoltage >= 100 && resistorUsed > 2) {
-    resistorUsed--;
-    switchResistor(resistorUsed);
-    delay(50);
-    return;
-  }
-*/
+
   if (analogVoltage < 900) {
     convertedVoltage = (float)analogVoltage * (5.0 / 1024.0);
-    resistanceOfUnknown = (float)(convertedVoltage*resistance)/(float)(5.0-convertedVoltage);
-    Serial.println("Voltage: " + String(convertedVoltage));
-    Serial.println("Resistance of the unknown resistor: " + String(resistanceOfUnknown));
+    lcd.print(convertedVoltage*resistors[resistorUsed-R2])/(5.0-convertedVoltage);
   } else {
-    Serial.println("Too much/Too little.");
+    lcd.print("Invalid");
   }
   delay(1500);
 }
