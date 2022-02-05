@@ -5,11 +5,11 @@ uint16_t analogVoltage;
 float resistanceOfUnknown;
 float convertedVoltage;
 
-#define R2 2;
-#define R3 3;
-#define R4 4;
-#define R5 5;
-#define R6 6;
+#define R2 2
+#define R3 3
+#define R4 4
+#define R5 5
+#define R6 6
 
 void setup() {
   analogReference(EXTERNAL);
