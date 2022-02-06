@@ -2,8 +2,6 @@
 
 float resistors[5] = {100.0, 1000.0, 10000.0, 104700.0, 1035000.0}; //R2, R3, R4, R5, R6
 byte resistorUsed;
-uint16_t analogVoltage;
-float convertedVoltage;
 
 // Resistor pins
 #define R2 2
@@ -20,7 +18,7 @@ float convertedVoltage;
 #define DB6 11
 #define DB7 12
 
-LiquidCrystal lcd(RS, EN, DB4, DB5, DB6, DB7);
+//LiquidCrystal lcd(RS, EN, DB4, DB5, DB6, DB7);
 
 void setup() {
   Serial.begin(9600);
@@ -33,24 +31,21 @@ void setup() {
 
   resistorUsed = R6;
   switchResistor(resistorUsed);
-
+  /*
   lcd.begin(16, 2);
   lcd.setCursor(0, 0);
   lcd.print("Resistance: ");
   lcd.setCursor(0, 1);
+  */
 }
 
 void switchResistor(int num) {
-  for (int i = R2; i <= R6; ++i) {
-    if (num == i)
-      digitalWrite(i, HIGH);
-    else
-      digitalWrite(i, LOW);
-  }
+  for (int i = R2; i <= R6; ++i)
+    digitalWrite(i, num==i ? HIGH : LOW);
 }
 
 void loop() {
-  analogVoltage = 1023 - analogRead(A1);
+  uint16_t analogVoltage = 1023 - analogRead(A1);
 
   if (analogVoltage > 600 && resistorUsed < R6) {
     resistorUsed++;
@@ -67,10 +62,11 @@ void loop() {
   }
 
   if (analogVoltage < 900) {
-    convertedVoltage = (float)analogVoltage * (5.0 / 1024.0);
-    lcd.print(convertedVoltage*resistors[resistorUsed-R2])/(5.0-convertedVoltage);
+    float convertedVoltage = (float)analogVoltage * (5.0 / 1024.0);
+    //lcd.print(convertedVoltage*resistors[resistorUsed-R2])/(5.0-convertedVoltage);
+    Serial.println(convertedVoltage*resistors[resistorUsed-R2])/(5.0-convertedVoltage);
   } else {
-    lcd.print("Invalid");
+    Serial.println("Invalid");
   }
   delay(1500);
 }
