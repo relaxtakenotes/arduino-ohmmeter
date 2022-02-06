@@ -1,6 +1,6 @@
-#include <LiquidCrystal.h>
+//#include <LiquidCrystal.h>
 
-float resistors[5] = {100.0, 1000.0, 10000.0, 104700.0, 1035000.0}; //R2, R3, R4, R5, R6
+float resistors[5] = {100.0, 1000.0, 10000.0, 100000.0, 1000000.0}; //R2, R3, R4, R5, R6
 byte resistorUsed;
 
 // Resistor pins
