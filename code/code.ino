@@ -47,7 +47,7 @@ void switchResistor(int num) {
 void loop() {
   uint16_t analogVoltage = 1023 - analogRead(A1);
 
-  if (analogVoltage > 600 && resistorUsed < R6) {
+  if (analogVoltage > 550 && resistorUsed < R6) {
     resistorUsed++;
     switchResistor(resistorUsed);
     delay(50);
