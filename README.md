@@ -2,6 +2,8 @@
  
 Very simple implementation of an ohmmeter. In progress...
 
-TODO:
-1) Proper documentation/readme in both Russian and English.
-2) Make schematics public whenever they are done.
+Upcoming:
+ Schematics
+ Support for capacitors (capacitance)
+ Guide on how to use this
+ 
