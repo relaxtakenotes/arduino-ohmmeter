@@ -3,7 +3,7 @@
 Very simple implementation of an ohmmeter. In progress...
 
 Upcoming:
- Schematics
- Support for capacitors (capacitance)
- Guide on how to use this
+- Schematics
+- Support for capacitors (capacitance)
+- Guide/documentation
  
