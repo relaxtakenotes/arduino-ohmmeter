@@ -1,7 +1,23 @@
-//#include <LiquidCrystal.h>
+#include <LiquidCrystal.h>
 
-float resistors[5] = {100.0, 1000.0, 10000.0, 100000.0, 1000000.0}; //R2, R3, R4, R5, R6
+float resistors[5] = {98.7, 999.7, 9999.7, 104599.7, 1033999.0}; //R2, R3, R4, R5, R6
+float resistorCorrections[5] = {-3.0, 4.2, 40.0, 0, 0}; // these are always added so if u need to subtract do negative values
 byte resistorUsed;
+char lcdBufferTop[16];
+char lcdBufferBottom[16];
+char calculatedResistanceChar[16];
+// Don't really know how to name them because i PASTED THIS!!!
+unsigned long time0, time1, time2; 
+float c, null0;
+char calculatedCapacitanceChar[16];
+byte kn, mk;
+
+bool allowedToSwitch = false;
+
+// Capacitance/Capacitor pins
+#define cCharge A5
+#define cDrain A4
+#define cRead A0
 
 // Resistor pins
 #define R2 2
@@ -9,6 +25,7 @@ byte resistorUsed;
 #define R4 4
 #define R5 5
 #define R6 6
+#define rRead A1
 
 // LCD Display pins
 #define RS 7
@@ -18,9 +35,10 @@ byte resistorUsed;
 #define DB6 11
 #define DB7 12
 
-//LiquidCrystal lcd(RS, EN, DB4, DB5, DB6, DB7);
+LiquidCrystal lcd(RS, EN, DB4, DB5, DB6, DB7);
 
 void setup() {
+  analogReference(EXTERNAL);
   Serial.begin(9600);
 
   pinMode(R2, OUTPUT);
@@ -31,12 +49,21 @@ void setup() {
 
   resistorUsed = R6;
   switchResistor(resistorUsed);
-  /*
+
   lcd.begin(16, 2);
-  lcd.setCursor(0, 0);
-  lcd.print("Resistance: ");
-  lcd.setCursor(0, 1);
-  */
+
+  capacitance(); // here so that it has time to calibrate the zero point
+  null0=c+0.02;
+}
+
+// I don't really want to to lcd.clear everytime because it can cause flicker so lets do this instead.
+char* ftws(char text[]) {
+  size_t length = strlen(text);
+  while(length < 17){
+    text[length] = ' ';
+    length++;
+  }
+  return text;
 }
 
 void switchResistor(int num) {
@@ -44,29 +71,103 @@ void switchResistor(int num) {
     digitalWrite(i, num==i ? HIGH : LOW);
 }
 
-void loop() {
-  uint16_t analogVoltage = 1023 - analogRead(A1);
-
+void ohmmeter() {
+  uint16_t analogVoltage = 1023 - analogRead(rRead);
   if (analogVoltage > 550 && resistorUsed < R6) {
     resistorUsed++;
     switchResistor(resistorUsed);
     delay(50);
-    return;
+    ohmmeter();
   }
 
   if (analogVoltage < 100 && resistorUsed > R2) {
     resistorUsed--;
     switchResistor(resistorUsed);
     delay(50);
-    return;
+    ohmmeter();
   }
 
   if (analogVoltage < 900) {
     float convertedVoltage = (float)analogVoltage * (5.0 / 1024.0);
-    //lcd.print(convertedVoltage*resistors[resistorUsed-R2])/(5.0-convertedVoltage);
-    Serial.println(convertedVoltage*resistors[resistorUsed-R2])/(5.0-convertedVoltage);
+    float calculatedResistance = convertedVoltage*resistors[resistorUsed-R2]/(5.0-convertedVoltage)+resistorCorrections[resistorUsed-R2];
+    dtostrf(calculatedResistance, 4, 2, calculatedResistanceChar);
+    sprintf(lcdBufferTop, "Resistance:");
+    sprintf(lcdBufferBottom, "%sohm", calculatedResistanceChar);
+    allowedToSwitch = false;
   } else {
-    Serial.println("Invalid");
+    sprintf(lcdBufferTop, "Too high or");
+    sprintf(lcdBufferBottom, "no resistor");
+    allowedToSwitch = true;
   }
-  delay(1500);
+
+  delay(400);
+}
+
+void capacitance() {
+  if (mk == 0) {
+    pinMode(cCharge,OUTPUT);
+    pinMode(cDrain,INPUT);
+    digitalWrite(cCharge,HIGH);
+  }
+
+  if (mk == 1) {
+    pinMode(cDrain,OUTPUT);
+    pinMode(cCharge,INPUT);
+    digitalWrite(cDrain,HIGH);
+  }
+
+  time0 = micros();
+  while (analogRead(cRead) < 644){
+    time2 = micros() - time0;
+    if (time2 >= 1000000 && mk == 0){
+      mk = 1;
+      time0 = 100000000;
+      break;
+    }
+  }
+
+  time1 = micros() - time0; 
+
+  while (analogRead(cRead) > 0) { 
+    pinMode(cDrain,OUTPUT); 
+    pinMode(cCharge,OUTPUT); 
+    digitalWrite(cDrain,LOW); 
+    digitalWrite(cCharge,LOW);
+  }
+
+  if (mk == 1 && time1 < 1000) {
+    mk=0;
+  }
+
+  c = time1;
+  c = c / 1000 - null0;
+  c = abs(c);
+
+  if (time1 >= 10000000) {
+    sprintf(lcdBufferTop, "Capacitor is");
+    sprintf(lcdBufferBottom, "too big");    
+  } else {
+    dtostrf(abs(c), 4, 2, calculatedCapacitanceChar);
+    sprintf(lcdBufferTop, "Capacitance:");
+    sprintf(lcdBufferBottom, "%s", calculatedCapacitanceChar);
+    if (mk == 0) {
+      sprintf(lcdBufferBottom, "%snF", calculatedCapacitanceChar);
+    }
+    if (mk == 1) {
+      sprintf(lcdBufferBottom, "%suF", calculatedCapacitanceChar);
+    }
+  }
+}
+
+void loop() {
+  ohmmeter();
+  if (allowedToSwitch)
+    capacitance();
+
+  lcd.setCursor(0, 0);
+  lcd.print(ftws(lcdBufferTop));
+  lcd.setCursor(0, 1);
+  lcd.print(ftws(lcdBufferBottom));
+
+  delay(100);
 }
