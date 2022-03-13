@@ -1,9 +1,8 @@
 # arduino-ohmmeter
  
-Very simple implementation of an ohmmeter. In progress...
+Capacitance meter + ohmmeter implementation for arduino.
 
-Upcoming:
-- Schematics
-- Support for capacitors (capacitance)
-- Guide/documentation
- 
+TO-DO:
+ - Release proper schematics.
+ - Clean up code a little bit and reduce memory usage.
+ - Possibly a tutorial on how to build this whenever I'm myself done building it.
