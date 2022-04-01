@@ -6,17 +6,20 @@ byte resistorUsed;
 char lcdBufferTop[16];
 char lcdBufferBottom[16];
 char calculatedResistanceChar[16];
-// Don't really know how to name them because i PASTED THIS!!!
+char calculatedCapacitanceChar[16];
+
 unsigned long time0, time1, time2; 
 float c, null0;
-char calculatedCapacitanceChar[16];
 byte kn, mk;
+bool capacitanceCalibrated = false;
 
-bool allowedToSwitch = false;
+bool capacitanceFound = false;
+bool resistanceFound = false;
+
 
 // Capacitance/Capacitor pins
-#define cCharge A5
-#define cDrain A4
+#define cCharge A3
+#define cDrain A2
 #define cRead A0
 
 // Resistor pins
@@ -91,13 +94,9 @@ void ohmmeter() {
     float convertedVoltage = (float)analogVoltage * (5.0 / 1024.0);
     float calculatedResistance = convertedVoltage*resistors[resistorUsed-R2]/(5.0-convertedVoltage)+resistorCorrections[resistorUsed-R2];
     dtostrf(calculatedResistance, 4, 2, calculatedResistanceChar);
-    sprintf(lcdBufferTop, "Resistance:");
-    sprintf(lcdBufferBottom, "%sohm", calculatedResistanceChar);
-    allowedToSwitch = false;
+    resistanceFound = true;
   } else {
-    sprintf(lcdBufferTop, "Too high or");
-    sprintf(lcdBufferBottom, "no resistor");
-    allowedToSwitch = true;
+    resistanceFound = false;
   }
 
   delay(400);
@@ -143,27 +142,46 @@ void capacitance() {
   c = c / 1000 - null0;
   c = abs(c);
 
-  if (time1 >= 10000000) {
-    sprintf(lcdBufferTop, "Capacitor is");
-    sprintf(lcdBufferBottom, "too big");    
-  } else {
+  if (time1 < 10000000) {
     dtostrf(abs(c), 4, 2, calculatedCapacitanceChar);
-    sprintf(lcdBufferTop, "Capacitance:");
-    sprintf(lcdBufferBottom, "%s", calculatedCapacitanceChar);
-    if (mk == 0) {
-      sprintf(lcdBufferBottom, "%snF", calculatedCapacitanceChar);
-    }
-    if (mk == 1) {
-      sprintf(lcdBufferBottom, "%suF", calculatedCapacitanceChar);
-    }
+    capacitanceFound = true;
+  } else {
+    capacitanceFound = false;
+  }
+
+  if (!capacitanceCalibrated) {
+    null0 = c;
+    capacitanceCalibrated = true;
   }
 }
 
-void loop() {
-  ohmmeter();
-  if (allowedToSwitch)
-    capacitance();
+void fillBufferCapacitance() {
+  if (!resistanceFound)
+    sprintf(lcdBufferTop, "Capacitance:");
+  sprintf(lcdBufferBottom, "%s", calculatedCapacitanceChar);
+  if (mk == 0) {
+    sprintf(lcdBufferBottom, "%snF", calculatedCapacitanceChar);
+  }
+  if (mk == 1) {
+    sprintf(lcdBufferBottom, "%suF", calculatedCapacitanceChar);
+  }  
+}
 
+void loop() {
+  capacitance();
+  ohmmeter();
+  if (capacitanceFound && !resistanceFound) {
+    fillBufferCapacitance()
+  } else if (!capacitanceFound && resistanceFound) {
+    sprintf(lcdBufferTop, "Resistance:");
+    sprintf(lcdBufferBottom, "%sohm", calculatedResistanceChar);
+  } else if (capacitanceFound && resistanceFound) {
+    sprintf(lcdBufferTop, "%sohm", calculatedResistanceChar);
+    fillBufferCapacitance();
+  } else {
+    sprintf(lcdBufferTop, "Nothing found...");
+    sprintf(lcdBufferBottom, "...");
+  }
   lcd.setCursor(0, 0);
   lcd.print(ftws(lcdBufferTop));
   lcd.setCursor(0, 1);
