@@ -12,6 +12,7 @@ unsigned long time0, time1, time2;
 float c, null0;
 byte kn, mk;
 bool capacitanceCalibrated = false;
+uint16_t analogVoltage;
 
 bool capacitanceFound = false;
 bool resistanceFound = false;
@@ -75,19 +76,26 @@ void switchResistor(int num) {
 }
 
 void ohmmeter() {
-  uint16_t analogVoltage = 1023 - analogRead(rRead);
-  if (analogVoltage > 550 && resistorUsed < R6) {
-    resistorUsed++;
-    switchResistor(resistorUsed);
-    delay(50);
-    ohmmeter();
-  }
+  while (true) {
+    analogVoltage = 1023 - analogRead(rRead);
+    bool failed = false; // not in the mood for copying the same "if statements" but reversing them
 
-  if (analogVoltage < 100 && resistorUsed > R2) {
-    resistorUsed--;
-    switchResistor(resistorUsed);
-    delay(50);
-    ohmmeter();
+    if (analogVoltage < 100 && resistorUsed > R2) {
+      resistorUsed--;
+      switchResistor(resistorUsed);
+      delay(50);
+      failed = true;
+    }
+
+    if (analogVoltage > 550 && resistorUsed < R6) {
+      resistorUsed++;
+      switchResistor(resistorUsed);
+      delay(50);
+      failed = true;
+    }
+
+    if (!failed)
+      break;
   }
 
   if (analogVoltage < 900) {
@@ -99,7 +107,6 @@ void ohmmeter() {
     resistanceFound = false;
   }
 
-  delay(400);
 }
 
 void capacitance() {
@@ -155,33 +162,46 @@ void capacitance() {
   }
 }
 
-void fillBufferCapacitance() {
-  if (!resistanceFound)
+int fillBuffer() {
+  if (capacitanceFound && !resistanceFound) {
     sprintf(lcdBufferTop, "Capacitance:");
-  sprintf(lcdBufferBottom, "%s", calculatedCapacitanceChar);
-  if (mk == 0) {
-    sprintf(lcdBufferBottom, "%snF", calculatedCapacitanceChar);
+    sprintf(lcdBufferBottom, "%s", calculatedCapacitanceChar);
+    if (mk == 0) {
+      sprintf(lcdBufferBottom, "%snF", calculatedCapacitanceChar);
+    }
+    if (mk == 1) {
+      sprintf(lcdBufferBottom, "%suF", calculatedCapacitanceChar);
+    }
+    return;
+  } 
+
+  if (!capacitanceFound && resistanceFound) {
+    sprintf(lcdBufferTop, "Resistance:");
+    sprintf(lcdBufferBottom, "%sohm", calculatedResistanceChar);
+    return;
+  } 
+
+  if (capacitanceFound && resistanceFound) {
+    sprintf(lcdBufferTop, "%sohm", calculatedResistanceChar);
+    sprintf(lcdBufferBottom, "%s", calculatedCapacitanceChar);
+    if (mk == 0) {
+      sprintf(lcdBufferBottom, "%snF", calculatedCapacitanceChar);
+    }
+    if (mk == 1) {
+      sprintf(lcdBufferBottom, "%suF", calculatedCapacitanceChar);
+    }
+    return;
   }
-  if (mk == 1) {
-    sprintf(lcdBufferBottom, "%suF", calculatedCapacitanceChar);
-  }  
+  sprintf(lcdBufferTop, "Nothing found...");
+  sprintf(lcdBufferBottom, "...");
+  return;
 }
 
 void loop() {
   capacitance();
   ohmmeter();
-  if (capacitanceFound && !resistanceFound) {
-    fillBufferCapacitance()
-  } else if (!capacitanceFound && resistanceFound) {
-    sprintf(lcdBufferTop, "Resistance:");
-    sprintf(lcdBufferBottom, "%sohm", calculatedResistanceChar);
-  } else if (capacitanceFound && resistanceFound) {
-    sprintf(lcdBufferTop, "%sohm", calculatedResistanceChar);
-    fillBufferCapacitance();
-  } else {
-    sprintf(lcdBufferTop, "Nothing found...");
-    sprintf(lcdBufferBottom, "...");
-  }
+  fillBuffer();
+
   lcd.setCursor(0, 0);
   lcd.print(ftws(lcdBufferTop));
   lcd.setCursor(0, 1);
